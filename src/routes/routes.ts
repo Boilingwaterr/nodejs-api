@@ -1,56 +1,84 @@
-import express from 'express'
-import { createUser, deleteUser, IUser, updateUser, users } from '../model/user'
-import { getAutoSuggestUsers } from '../middlewares/get-auto-suggest-users'
+import express from 'express';
+import {
+  createUser,
+  deleteUser,
+  getUserById,
+  getAllUser,
+  UserData,
+  updateUser
+} from '../model/user';
+import { getAutoSuggestUsers } from '../middlewares/get-auto-suggest-users';
 
-export const router = express.Router()
+export const router = express.Router();
 
-enum Messages {
+export enum Messages {
   NotFound = 'User not found.',
   Deleted = 'User was deleted.'
 }
 
-router.get('/users', getAutoSuggestUsers, (_, res) => {
-  res.json(users)
-})
-
-router.get('/users/:id', (req, res) => {
-  const currentUser = users.find(({ id }) => id === req.params.id)
-
-  if (!currentUser || currentUser.isDeleted) {
-    res.status(404).json({ message: Messages.NotFound })
-  } else {
-    res.json(currentUser)
+router.get('/users', getAutoSuggestUsers, async (_, res) => {
+  try {
+    const users = await getAllUser();
+    res.json(users);
+  } catch (error) {
+    res.status(500);
   }
-})
+});
 
-router.post('/users', (req, res) => {
-  const { login, password, age }: Omit<IUser, 'id'> = req.body
-  const user = createUser({ login, password, age })
+router.get('/users/:id', async (req, res) => {
+  try {
+    const currentUser = await getUserById(req.params.id);
 
-  res.status(201).json({ id: user.id })
-})
-
-router.put('/users/:id', (req, res) => {
-  const { login, password, age }: Omit<IUser, 'id'> = req.body
-  const currentUser = users.find(({ id }) => id === req.params.id)
-
-  if (!currentUser || currentUser.isDeleted) {
-    res.status(404).json({ message: Messages.NotFound })
-  } else {
-    const result = updateUser(currentUser, { login, password, age })
-
-    res.json(result)
+    if (!currentUser || currentUser.isDeleted) {
+      res.status(404).json({ message: Messages.NotFound });
+    } else {
+      res.json(currentUser);
+    }
+  } catch (error) {
+    res.status(500);
   }
-})
+});
 
-router.delete('/users/:id', (req, res) => {
-  const currentUser = users.find(({ id }) => id === req.params.id)
+router.post('/users', async (req, res) => {
+  const { login, password, age }: Omit<UserData, 'id'> = req.body;
+  try {
+    const user = await createUser({ login, password, age });
 
-  if (!currentUser || currentUser.isDeleted) {
-    res.status(404).json({ message: Messages.NotFound })
-  } else {
-    deleteUser(currentUser)
-
-    res.json({ message: Messages.Deleted })
+    res.status(201).json({ id: user.id });
+  } catch (error) {
+    res.status(500);
   }
-})
+});
+
+router.put('/users/:id', async (req, res) => {
+  try {
+    const { login, password, age }: Omit<UserData, 'id'> = req.body;
+    const currentUser = await getUserById(req.params.id);
+
+    if (!currentUser || currentUser.isDeleted) {
+      res.status(404).json({ message: Messages.NotFound });
+    } else {
+      const result = updateUser(currentUser, { login, password, age });
+
+      res.json(result);
+    }
+  } catch (error) {
+    res.status(500);
+  }
+});
+
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const currentUser = await getUserById(req.params.id);
+
+    if (!currentUser || currentUser.isDeleted) {
+      res.status(404).json({ message: Messages.NotFound });
+    } else {
+      await deleteUser(currentUser);
+
+      res.json({ message: Messages.Deleted });
+    }
+  } catch (error) {
+    res.status(500);
+  }
+});

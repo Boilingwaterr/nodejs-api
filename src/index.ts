@@ -1,11 +1,11 @@
-import express from 'express'
-import { router } from './routes/routes'
+import express from 'express';
+import { router } from './routes/routes';
 
-const app = express()
+const app = express();
 
-app.use(express.json())
-app.use('/api', router)
+app.use(express.json());
+app.use('/api', router);
 
 app.listen(3000, () => {
-  console.log('app listening 3000 port')
-})
+  console.log('app listening 3000 port');
+});
