@@ -28,6 +28,7 @@
   },
   "scripts": {
     "serve": "nodemon ./src/index.ts",
+    "lint": "npx tsc --noEmit & eslint ./src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
