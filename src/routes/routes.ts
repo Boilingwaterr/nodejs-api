@@ -8,6 +8,7 @@ import {
   updateUser
 } from '../model/user';
 import { getAutoSuggestUsers } from '../middlewares/get-auto-suggest-users';
+import { validateUser } from '../middlewares/validateUser';
 
 export const router = express.Router();
 
@@ -39,7 +40,7 @@ router.get('/users/:id', async (req, res) => {
   }
 });
 
-router.post('/users', async (req, res) => {
+router.post('/users', validateUser, async (req, res) => {
   const { login, password, age }: Omit<UserData, 'id'> = req.body;
   try {
     const user = await createUser({ login, password, age });
@@ -50,15 +51,16 @@ router.post('/users', async (req, res) => {
   }
 });
 
-router.put('/users/:id', async (req, res) => {
+router.put('/users/:id', validateUser, async (req, res) => {
   try {
     const { login, password, age }: Omit<UserData, 'id'> = req.body;
+
     const currentUser = await getUserById(req.params.id);
 
     if (!currentUser || currentUser.isDeleted) {
       res.status(404).json({ message: Messages.NotFound });
     } else {
-      const result = updateUser(currentUser, { login, password, age });
+      const result = await updateUser(currentUser, { login, password, age });
 
       res.json(result);
     }
