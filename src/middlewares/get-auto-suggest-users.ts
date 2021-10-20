@@ -3,7 +3,7 @@ import { UserData, users } from '../model/user';
 
 const findUserByLogin = (login: string) =>
   users
-    .filter((user) => user.login.startsWith(login))
+    .filter((user) => user.login.includes(login))
     .sort((a, b) => {
       if (a.login < b.login) {
         return -1;
@@ -14,26 +14,35 @@ const findUserByLogin = (login: string) =>
       return 0;
     });
 
-const findUsersByLogin = (loginSubstring: string[]) =>
+const findUserByCollectionLogins = (loginSubstring: string[]) =>
   loginSubstring.reduce((users: UserData[], query: string) => {
     const _suggestUsers = findUserByLogin(query);
     return [...users, ..._suggestUsers];
   }, []);
 
-export const getAutoSuggestUsers: RequestHandler = (
-  { query: { loginSubstring } },
-  res,
-  next
-) => {
-  if (typeof loginSubstring === 'string') {
-    const suggestUsers = findUserByLogin(loginSubstring);
+export const getAutoSuggestUsers: (serverLimit: number) => RequestHandler =
+  (serverLimit: number) =>
+  ({ query: { loginSubstring, limit: clientLimit } }, res, next) => {
+    let limit = serverLimit;
 
-    res.json(suggestUsers);
-  } else if (Array.isArray(loginSubstring)) {
-    const suggestUsers = findUsersByLogin(loginSubstring.map(String));
+    if (
+      typeof clientLimit === 'string' &&
+      !isNaN(Number(clientLimit)) &&
+      Number(clientLimit) <= serverLimit
+    ) {
+      limit = Number(clientLimit);
+    }
 
-    res.json(suggestUsers);
-  } else {
-    next();
-  }
-};
+    if (typeof loginSubstring === 'string') {
+      const suggestUsers = findUserByLogin(loginSubstring).slice(0, limit);
+
+      res.json(suggestUsers);
+    } else if (Array.isArray(loginSubstring)) {
+      const suggestUsers = findUserByCollectionLogins(
+        loginSubstring.map(String)
+      ).slice(0, limit);
+      res.json(suggestUsers);
+    } else {
+      next();
+    }
+  };

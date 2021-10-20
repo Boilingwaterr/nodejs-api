@@ -8,7 +8,6 @@ import {
   updateUser
 } from '../model/user';
 import { getAutoSuggestUsers } from '../middlewares/get-auto-suggest-users';
-import { validateUser } from '../middlewares/validateUser';
 
 export const router = express.Router();
 
@@ -17,7 +16,7 @@ export enum Messages {
   Deleted = 'User was deleted.'
 }
 
-router.get('/users', getAutoSuggestUsers, async (_, res) => {
+router.get('/users', getAutoSuggestUsers(50), async (_, res) => {
   try {
     const users = await getAllUser();
     res.json(users);
@@ -40,7 +39,7 @@ router.get('/users/:id', async (req, res) => {
   }
 });
 
-router.post('/users', validateUser, async (req, res) => {
+router.post('/users', async (req, res) => {
   const { login, password, age }: Omit<UserData, 'id'> = req.body;
   try {
     const user = await createUser({ login, password, age });
@@ -51,7 +50,7 @@ router.post('/users', validateUser, async (req, res) => {
   }
 });
 
-router.put('/users/:id', validateUser, async (req, res) => {
+router.put('/users/:id', async (req, res) => {
   try {
     const { login, password, age }: Omit<UserData, 'id'> = req.body;
 
