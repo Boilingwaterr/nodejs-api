@@ -10,7 +10,7 @@ export interface UserData {
 
 export const users: UserData[] = [];
 
-export const getAllUser = (): Promise<UserData[]> => Promise.resolve(users);
+export const getAllUsers = (): Promise<UserData[]> => Promise.resolve(users);
 
 export const getUserById = (
   id: UserData['id']

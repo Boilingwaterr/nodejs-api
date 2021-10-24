@@ -3,12 +3,12 @@ import {
   createUser,
   deleteUser,
   getUserById,
-  getAllUser,
+  getAllUsers,
   UserData,
   updateUser
 } from '../model/user';
-import { getAutoSuggestUsers } from '../middlewares/get-auto-suggest-users';
 import { validateUser } from '../middlewares/validateUser';
+import { getSuggestUsers } from '../middlewares/get-auto-suggest-users';
 
 export const router = express.Router();
 
@@ -17,9 +17,9 @@ export enum Messages {
   Deleted = 'User was deleted.'
 }
 
-router.get('/users', getAutoSuggestUsers(50), async (_, res) => {
+router.get('/users', getSuggestUsers(50), async (_, res) => {
   try {
-    const users = await getAllUser();
+    const users = await getAllUsers();
     res.json(users);
   } catch (error) {
     res.status(500);

@@ -20,7 +20,7 @@ const findUserByCollectionLogins = (loginSubstring: string[]) =>
     return [...users, ..._suggestUsers];
   }, []);
 
-export const getAutoSuggestUsers: (serverLimit: number) => RequestHandler =
+export const getSuggestUsers: (serverLimit: number) => RequestHandler =
   (serverLimit: number) =>
   ({ query: { loginSubstring, limit: clientLimit } }, res, next) => {
     let limit = serverLimit;
