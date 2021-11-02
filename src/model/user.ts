@@ -1,6 +1,8 @@
-import { v4 as uuid, v4 } from 'uuid';
+import { DataTypes, Model } from 'sequelize';
+import sequelize from '../db';
+import { v4 } from 'uuid';
 
-export interface UserData {
+export interface IUser {
   id: ReturnType<typeof v4>;
   login: string;
   password: string;
@@ -8,40 +10,17 @@ export interface UserData {
   isDeleted: boolean;
 }
 
-export const users: UserData[] = [];
-
-export const getAllUsers = (): Promise<UserData[]> => Promise.resolve(users);
-
-export const getUserById = (
-  id: UserData['id']
-): Promise<UserData | undefined> =>
-  Promise.resolve(users.find((user) => user.id === id));
-
-export const createUser = ({
-  login,
-  password,
-  age
-}: Pick<UserData, 'login' | 'password' | 'age'>): Promise<UserData> => {
-  const id = uuid();
-  const user = { login, password, age, id, isDeleted: false };
-  users.push(user);
-
-  return Promise.resolve(user);
-};
-
-export const updateUser = (
-  currentUser: UserData,
-  patch: Omit<UserData, 'id' | 'isDeleted'>
-): Promise<UserData> => {
-  currentUser.login = patch.login;
-  currentUser.password = patch.password;
-  currentUser.age = patch.age;
-
-  return Promise.resolve(currentUser);
-};
-
-export const deleteUser = (currentUser: UserData): Promise<UserData> => {
-  currentUser.isDeleted = true;
-
-  return Promise.resolve(currentUser);
-};
+export interface UsersModel extends Model<IUser>, IUser {}
+export const Users = sequelize.define<UsersModel>(
+  'Users',
+  {
+    id: { type: DataTypes.UUID, primaryKey: true, allowNull: false },
+    login: { type: DataTypes.STRING, allowNull: false },
+    password: { type: DataTypes.STRING, allowNull: false },
+    age: { type: DataTypes.INTEGER, allowNull: false },
+    isDeleted: { type: DataTypes.BOOLEAN, allowNull: false }
+  },
+  {
+    timestamps: false
+  }
+);
