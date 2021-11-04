@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import sequelize from '../db';
+import sequelize from '@src/db';
 import { v4 } from 'uuid';
 
 export interface IUser {

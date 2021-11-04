@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express';
 import { v4 as uuid, validate } from 'uuid';
-import { Users, IUser } from '../model/user';
+import { Users, IUser } from '@models/users.model';
 import { Op } from 'sequelize';
 
 export enum Messages {
@@ -9,7 +9,7 @@ export enum Messages {
 }
 
 export const getAllUsers: RequestHandler = async (
-  { query: { loginSubstring, limit: clientLimit = 50 } },
+  { query: { loginSubstring, limit: clientLimit } },
   res
 ) => {
   try {
@@ -23,15 +23,39 @@ export const getAllUsers: RequestHandler = async (
       limit = Number(clientLimit);
     }
 
-    if (loginSubstring) {
+    if (typeof loginSubstring === 'string') {
       const suggestedUser = await Users.findAll({
         limit,
-        where: { login: { [Op.like]: `%${loginSubstring}%` } }
+        where: {
+          [Op.and]: [
+            { login: { [Op.like]: `%${loginSubstring}%` } },
+            { isDeleted: false }
+          ]
+        }
       });
+
       return res.json(suggestedUser);
+    } else if (Array.isArray(loginSubstring)) {
+      const suggestedUsers = await Users.findAll({
+        limit,
+        where: {
+          [Op.and]: [
+            {
+              login: {
+                [Op.or]: loginSubstring.map((substring) => ({
+                  [Op.like]: `%${substring}%`
+                }))
+              }
+            },
+            { isDeleted: false }
+          ]
+        }
+      });
+
+      return res.json(suggestedUsers);
     }
 
-    const users = await Users.findAll({ limit });
+    const users = await Users.findAll({ limit, where: { isDeleted: false } });
     res.json(users);
   } catch (error) {
     res.status(500);
