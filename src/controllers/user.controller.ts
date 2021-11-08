@@ -1,11 +1,13 @@
 import { RequestHandler } from 'express';
 import { v4 as uuid, validate } from 'uuid';
-import { Users, IUser } from '@models/users.model';
-import { Op } from 'sequelize';
+import { IUser } from '@models/users.model';
+import * as UsersDataAccess from '@src/data-access/users.data-access';
 
 export enum Messages {
   NotFound = 'User not found.',
-  Deleted = 'User was deleted.'
+  Deleted = 'User was deleted.',
+  IncorrectId = 'Incorrect type of id.',
+  Unexpected = 'Something went wrong.'
 }
 
 export const getAllUsers: RequestHandler = async (
@@ -23,39 +25,16 @@ export const getAllUsers: RequestHandler = async (
       limit = Number(clientLimit);
     }
 
-    if (typeof loginSubstring === 'string') {
-      const suggestedUser = await Users.findAll({
-        limit,
-        where: {
-          [Op.and]: [
-            { login: { [Op.like]: `%${loginSubstring}%` } },
-            { isDeleted: false }
-          ]
-        }
-      });
+    const suggestedUser = await UsersDataAccess.getSuggestUsers(
+      loginSubstring as string | string[],
+      limit
+    );
 
+    if (suggestedUser) {
       return res.json(suggestedUser);
-    } else if (Array.isArray(loginSubstring)) {
-      const suggestedUsers = await Users.findAll({
-        limit,
-        where: {
-          [Op.and]: [
-            {
-              login: {
-                [Op.or]: loginSubstring.map((substring) => ({
-                  [Op.like]: `%${substring}%`
-                }))
-              }
-            },
-            { isDeleted: false }
-          ]
-        }
-      });
-
-      return res.json(suggestedUsers);
     }
 
-    const users = await Users.findAll({ limit, where: { isDeleted: false } });
+    const users = await UsersDataAccess.getAllUsers(limit);
     res.json(users);
   } catch (error) {
     res.status(500);
@@ -67,7 +46,7 @@ export const createUser: RequestHandler = async (req, res) => {
     const { login, password, age }: Omit<IUser, 'id'> = req.body;
     const id = uuid();
 
-    const user = await Users.create({
+    const user = await UsersDataAccess.createUser({
       login,
       password,
       age,
@@ -81,30 +60,32 @@ export const createUser: RequestHandler = async (req, res) => {
   }
 };
 
-export const updateUser: RequestHandler = async (req, res) => {
+export const updateUser: RequestHandler = async (req, res, next) => {
   try {
     const { login, password, age }: Omit<IUser, 'id'> = req.body;
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: 'Incorrect type of id.' });
+      return res.status(400).json({ message: Messages.IncorrectId });
     }
 
-    const currentUser = await Users.findByPk(id);
+    const currentUser = await UsersDataAccess.findUserById(id);
 
     if (!currentUser || currentUser.isDeleted) {
       return res.status(404).json({ message: Messages.NotFound });
     } else {
-      await Users.update(
-        { login, password, age },
-        {
-          where: {
-            id
-          }
-        }
-      );
+      const resultOfOperation = await UsersDataAccess.updateUser({
+        login,
+        password,
+        age,
+        id
+      });
 
-      res.json({ id });
+      if (resultOfOperation) {
+        return res.json({ id });
+      }
+
+      next(Messages.Unexpected);
     }
   } catch (error) {
     res.status(500);
@@ -113,11 +94,13 @@ export const updateUser: RequestHandler = async (req, res) => {
 
 export const getUserById: RequestHandler = async (req, res) => {
   try {
-    if (!validate(req.params.id)) {
-      return res.status(400).json({ message: 'Incorrect type of id.' });
+    const id = req.params.id;
+
+    if (!validate(id)) {
+      return res.status(400).json({ message: Messages.IncorrectId });
     }
 
-    const currentUser = await Users.findByPk(req.params.id);
+    const currentUser = await UsersDataAccess.findUserById(id);
 
     if (!currentUser || currentUser.isDeleted) {
       res.status(404).json({ message: Messages.NotFound });
@@ -129,29 +112,25 @@ export const getUserById: RequestHandler = async (req, res) => {
   }
 };
 
-export const deleteUser: RequestHandler = async (req, res) => {
+export const deleteUser: RequestHandler = async (req, res, next) => {
   try {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: 'Incorrect type of id.' });
+      return res.status(400).json({ message: Messages.IncorrectId });
     }
 
-    const currentUser = await Users.findByPk(id);
+    const currentUser = await UsersDataAccess.findUserById(id);
 
     if (!currentUser || currentUser.isDeleted) {
       return res.status(404).json({ message: Messages.NotFound });
     } else {
-      await Users.update(
-        { isDeleted: true },
-        {
-          where: {
-            id
-          }
-        }
-      );
+      const resultOfOperation = await UsersDataAccess.deleteUser(id);
+      if (resultOfOperation) {
+        return res.json({ message: Messages.Deleted });
+      }
 
-      res.json({ message: Messages.Deleted });
+      next(Messages.Unexpected);
     }
   } catch (error) {
     res.status(500);
