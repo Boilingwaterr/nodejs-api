@@ -23,17 +23,19 @@ export const Group = sequelize.define<GroupModel>(
     id: { type: DataTypes.UUID, primaryKey: true, allowNull: false },
     name: { type: DataTypes.STRING, allowNull: false },
     permissions: {
-      type: DataTypes.ENUM(
-        Permissions.READ,
-        Permissions.WRITE,
-        Permissions.DELETE,
-        Permissions.SHARE,
-        Permissions.UPLOAD_FILES
-      ),
+      type: DataTypes.ARRAY(DataTypes.STRING()),
+      // type: DataTypes.ENUM(
+      //   Permissions.READ,
+      //   Permissions.WRITE,
+      //   Permissions.DELETE,
+      //   Permissions.SHARE,
+      //   Permissions.UPLOAD_FILES
+      // ),
       allowNull: false
     }
   },
   {
-    timestamps: false
+    timestamps: false,
+    tableName: 'Group'
   }
 );

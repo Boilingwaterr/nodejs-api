@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express';
 import { v4 as uuid, validate } from 'uuid';
-import { IUser } from '@models/users.model';
+import { IUser } from '@src/models/user.model';
 import * as UsersDataAccess from '@src/data-access/users.data-access';
 import { CommonMessages } from '@controllers/common-messages';
 
@@ -11,7 +11,8 @@ export enum UsersMessages {
 
 export const getAllUsers: RequestHandler = async (
   { query: { loginSubstring, limit: clientLimit } },
-  res
+  res,
+  next
 ) => {
   try {
     let limit = 500;
@@ -36,11 +37,11 @@ export const getAllUsers: RequestHandler = async (
     const users = await UsersDataAccess.getAllUsers(limit);
     res.json(users);
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };
 
-export const createUser: RequestHandler = async (req, res) => {
+export const createUser: RequestHandler = async (req, res, next) => {
   try {
     const { login, password, age }: Omit<IUser, 'id'> = req.body;
     const id = uuid();
@@ -55,7 +56,7 @@ export const createUser: RequestHandler = async (req, res) => {
 
     res.status(201).json(user);
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };
 
@@ -87,11 +88,11 @@ export const updateUser: RequestHandler = async (req, res, next) => {
       next(CommonMessages.Unexpected);
     }
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };
 
-export const getUserById: RequestHandler = async (req, res) => {
+export const getUserById: RequestHandler = async (req, res, next) => {
   try {
     const id = req.params.id;
 
@@ -107,7 +108,7 @@ export const getUserById: RequestHandler = async (req, res) => {
       return res.json(currentUser);
     }
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };
 
@@ -132,6 +133,6 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
       next(CommonMessages.Unexpected);
     }
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };

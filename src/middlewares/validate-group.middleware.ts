@@ -4,7 +4,7 @@ import Joi from 'joi';
 
 export const validateGroup: RequestHandler = (req, res, next) => {
   const schema = Joi.object({
-    name: Joi.string().min(4).max(20).required(),
+    name: Joi.string().max(20).required(),
     permissions: Joi.array()
       .items(
         Permissions.READ,
@@ -13,7 +13,8 @@ export const validateGroup: RequestHandler = (req, res, next) => {
         Permissions.SHARE,
         Permissions.UPLOAD_FILES
       )
-      .required()
+      .required(),
+    usersIds: Joi.array().items(Joi.string())
   });
 
   const options = {
