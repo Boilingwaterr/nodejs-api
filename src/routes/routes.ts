@@ -1,21 +1,26 @@
 import express from 'express';
-import { validateUser } from '@middlewares/validate-user.middleware';
+import { validateUser } from '@src/middlewares/validate/validate-user.middleware';
 import * as usersController from '@controllers/user.controller';
 import * as groupsController from '@controllers/groups.controller';
-import { validateGroup } from '@src/middlewares/validate-group.middleware';
+import { validateGroup } from '@src/middlewares/validate/validate-group.middleware';
+import { withLogger } from '@src/utils/logger.utils';
 
 export const router = express.Router();
 
 // users
-router.get('/users', usersController.getAllUsers);
-router.post('/users', validateUser, usersController.createUser);
-router.put('/users/:id', validateUser, usersController.updateUser);
-router.get('/users/:id', usersController.getUserById);
-router.delete('/users/:id', usersController.deleteUser);
+router.get('/users', withLogger(usersController.getAllUsers));
+router.post('/users', validateUser, withLogger(usersController.createUser));
+router.put('/users/:id', validateUser, withLogger(usersController.updateUser));
+router.get('/users/:id', withLogger(usersController.getUserById));
+router.delete('/users/:id', withLogger(usersController.deleteUser));
 
 // groups
-router.get('/groups', groupsController.getAllGroups);
-router.get('/groups/:id', groupsController.getGroupById);
-router.post('/groups', validateGroup, groupsController.createGroup);
-router.put('/groups/:id', validateGroup, groupsController.updateGroup);
-router.delete('/groups/:id', groupsController.deleteGroup);
+router.get('/groups', withLogger(groupsController.getAllGroups));
+router.get('/groups/:id', withLogger(groupsController.getGroupById));
+router.post('/groups', validateGroup, withLogger(groupsController.createGroup));
+router.put(
+  '/groups/:id',
+  validateGroup,
+  withLogger(groupsController.updateGroup)
+);
+router.delete('/groups/:id', withLogger(groupsController.deleteGroup));
