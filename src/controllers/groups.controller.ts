@@ -17,6 +17,7 @@ export const getAllGroups: RequestHandler = async (_req, res, next) => {
   try {
     const groups = await GroupsDataAccess.getAllGroups();
     res.json(groups);
+    return next();
   } catch (error) {
     next(error);
   }
@@ -52,7 +53,8 @@ export const createGroup: RequestHandler = async (req, res, next) => {
       if (group && code) {
         await transaction.commit();
 
-        return res.json({ id });
+        res.json({ id });
+        return next();
       }
     }
 
@@ -105,14 +107,16 @@ export const updateGroup: RequestHandler = async (req, res, next) => {
         if (resultOfOperation && code) {
           await transaction.commit();
 
-          return res.json({ id });
+          res.json({ id });
+          return next();
         }
       }
 
       if (resultOfOperation) {
         await transaction.commit();
 
-        return res.json({ id });
+        res.json({ id });
+        return next();
       }
 
       next({ message: CommonMessages.Unexpected });
@@ -139,7 +143,8 @@ export const getGroupById: RequestHandler = async (req, res, next) => {
       next(new ApiError(GroupMessages.NotFound));
       return;
     } else {
-      return res.json(currentGroup);
+      res.json(currentGroup);
+      return next();
     }
   } catch (error) {
     next(error);
@@ -163,7 +168,8 @@ export const deleteGroup: RequestHandler = async (req, res, next) => {
     } else {
       const resultOfOperation = await GroupsDataAccess.deleteGroup(id);
       if (resultOfOperation) {
-        return res.json({ message: GroupMessages.Deleted });
+        res.json({ message: GroupMessages.Deleted });
+        return next();
       }
 
       next({ message: CommonMessages.Unexpected });

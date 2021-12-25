@@ -38,6 +38,7 @@ export const getAllUsers: RequestHandler = async (
 
     const users = await UsersDataAccess.getAllUsers(limit);
     res.json(users);
+    return next();
   } catch (error) {
     next(error);
   }
@@ -57,6 +58,7 @@ export const createUser: RequestHandler = async (req, res, next) => {
     });
 
     res.status(201).json(user);
+    return next();
   } catch (error) {
     next(error);
   }
@@ -86,7 +88,8 @@ export const updateUser: RequestHandler = async (req, res, next) => {
       });
 
       if (resultOfOperation) {
-        return res.json({ id });
+        res.json({ id });
+        return next();
       }
 
       next({ message: CommonMessages.Unexpected });
@@ -111,7 +114,8 @@ export const getUserById: RequestHandler = async (req, res, next) => {
       next(new ApiError(UsersMessages.NotFound));
       return;
     } else {
-      return res.json(currentUser);
+      res.json(currentUser);
+      return next();
     }
   } catch (error) {
     next(error);
@@ -135,7 +139,8 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
     } else {
       const resultOfOperation = await UsersDataAccess.deleteUser(id);
       if (resultOfOperation) {
-        return res.json({ message: UsersMessages.Deleted });
+        res.json({ message: UsersMessages.Deleted });
+        return next();
       }
 
       next({ message: CommonMessages.Unexpected });
