@@ -7,12 +7,17 @@ import sequelize from '@src/db';
 import { errorHandler } from '@middlewares/error/error.middleware';
 import { loggerHandler } from '@middlewares/logger/logger.middleware';
 import { logger } from '@src/logger/logger';
+import { checkAuthorize } from '@middlewares/check-authorize/check-authorize.middleware';
+import { withLogger } from '@utils/logger.utils';
+import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3004;
 
 app.use(express.json());
+app.use(cors());
 app.use(loggerHandler);
+app.use(withLogger(checkAuthorize));
 app.use('/api', router);
 app.use(errorHandler);
 

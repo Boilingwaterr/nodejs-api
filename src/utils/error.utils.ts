@@ -1,7 +1,9 @@
 export enum ErrorStatusCode {
   BadRequest = 400,
-  Internal = 500,
-  Conflict = 409
+  Unauthorized = 401,
+  Forbidden = 403,
+  Conflict = 409,
+  Internal = 500
 }
 
 interface IApiError {
@@ -21,3 +23,7 @@ export const internalError = (message: IApiError['message']): IApiError =>
   buildApiError(ErrorStatusCode.Internal, message);
 
 export class ApiError extends Error {}
+
+export class UnauthorizedError extends Error {}
+
+export class ForbiddenError extends Error {}

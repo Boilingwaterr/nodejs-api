@@ -1,7 +1,9 @@
 import {
   ApiError,
   badRequestError,
-  ErrorStatusCode
+  ErrorStatusCode,
+  ForbiddenError,
+  UnauthorizedError
 } from '@src/utils/error.utils';
 import { ErrorRequestHandler } from 'express';
 import { UniqueConstraintError } from 'sequelize';
@@ -26,6 +28,16 @@ export const errorHandler: ErrorRequestHandler = (err, _, res, next) => {
 
   if (res.headersSent) {
     next(err);
+    return;
+  }
+
+  if (err instanceof UnauthorizedError) {
+    res.status(ErrorStatusCode.Unauthorized).json({ message: err.message });
+    return;
+  }
+
+  if (err instanceof ForbiddenError) {
+    res.status(ErrorStatusCode.Forbidden).json({ message: err.message });
     return;
   }
 
