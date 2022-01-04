@@ -18,7 +18,7 @@ import { UsersModel } from '@models/user.model';
 import { mocked } from 'ts-jest/utils';
 import { RequestHandler } from 'express';
 import { v4 as uuid, validate } from 'uuid';
-import { ApiError } from '@src/utils/error.utils';
+import { ApiError } from '@utils/error.utils';
 import { CommonMessages } from '@controllers/common-messages';
 
 jest.mock('@src/data-access/users.data-access');
@@ -30,12 +30,13 @@ const mockedUser = {
   password: 'password',
   age: 25,
   isDeleted: false
-};
+} as UsersModel;
 
 describe(getAllUsers, () => {
   const mockedGetAllUsersDataAccess = mocked(getAllUsersDataAccess);
   const mockedGetSuggestUsers = mocked(getSuggestUsers);
-  const mockedCallback = jest.fn();
+  const mockedNext = jest.fn();
+  const mockedJson = jest.fn();
 
   it('calls "getAllUsersDataAccess" with default value when controller is triggered', async () => {
     await getAllUsers(
@@ -43,7 +44,7 @@ describe(getAllUsers, () => {
         query: {}
       } as unknown as Parameters<RequestHandler>[0],
       {} as unknown as Parameters<RequestHandler>[1],
-      jest.fn()
+      mockedNext
     );
 
     expect(mockedGetAllUsersDataAccess).toBeCalledWith(500);
@@ -55,7 +56,7 @@ describe(getAllUsers, () => {
         query: { limit: '100' }
       } as unknown as Parameters<RequestHandler>[0],
       {} as unknown as Parameters<RequestHandler>[1],
-      jest.fn()
+      mockedNext
     );
 
     expect(mockedGetAllUsersDataAccess).toBeCalledWith(100);
@@ -67,7 +68,7 @@ describe(getAllUsers, () => {
         query: { limit: [100] }
       } as unknown as Parameters<RequestHandler>[0],
       {} as unknown as Parameters<RequestHandler>[1],
-      jest.fn()
+      mockedNext
     );
 
     expect(mockedGetAllUsersDataAccess).toBeCalledWith(500);
@@ -79,47 +80,41 @@ describe(getAllUsers, () => {
         query: { limit: '100', loginSubstring: 'login' }
       } as unknown as Parameters<RequestHandler>[0],
       {} as unknown as Parameters<RequestHandler>[1],
-      jest.fn()
+      mockedNext
     );
 
     expect(mockedGetSuggestUsers).toBeCalledWith('login', 100);
   });
 
   it('returns suggested user when "getSuggestUsers" is triggered and he is exist in db', async () => {
-    mockedGetSuggestUsers.mockReturnValue([mockedUser] as unknown as Promise<
-      UsersModel[]
-    >);
+    mockedGetSuggestUsers.mockResolvedValue([mockedUser]);
 
     await getAllUsers(
       {
         query: { loginSubstring: 'login' }
       } as unknown as Parameters<RequestHandler>[0],
-      { json: mockedCallback } as unknown as Parameters<RequestHandler>[1],
-      jest.fn()
+      { json: mockedJson } as unknown as Parameters<RequestHandler>[1],
+      mockedNext
     );
 
-    expect(mockedCallback).toBeCalledWith([mockedUser]);
+    expect(mockedJson).toBeCalledWith([mockedUser]);
   });
 
   it('returns user list when "getAllUsers" is triggered', async () => {
-    mockedGetAllUsersDataAccess.mockReturnValue([
-      mockedUser
-    ] as unknown as Promise<UsersModel[]>);
+    mockedGetAllUsersDataAccess.mockResolvedValue([mockedUser]);
 
     await getAllUsers(
       {
         query: {}
       } as unknown as Parameters<RequestHandler>[0],
-      { json: mockedCallback } as unknown as Parameters<RequestHandler>[1],
-      jest.fn()
+      { json: mockedJson } as unknown as Parameters<RequestHandler>[1],
+      mockedNext
     );
 
-    expect(mockedCallback).toBeCalledWith([mockedUser]);
+    expect(mockedJson).toBeCalledWith([mockedUser]);
   });
 
   it('calls next middleware with error when method gets some error', async () => {
-    const mockedNext = jest.fn();
-
     mockedGetAllUsersDataAccess.mockImplementation(() => {
       throw new Error('error');
     });
@@ -139,7 +134,9 @@ describe(getAllUsers, () => {
 describe(createUser, () => {
   const mockedCreateUserDataAccess = mocked(createUserDataAccess);
   const mockedUuid = mocked(uuid);
-  const mockedCallback = jest.fn();
+
+  const mockedNext = jest.fn();
+  const mockedJson = jest.fn();
 
   const body = { login: 'login', password: 'password', age: 'age' };
 
@@ -164,11 +161,8 @@ describe(createUser, () => {
   });
 
   it('returns user  when "createUser" is triggered', async () => {
-    mockedCreateUserDataAccess.mockReturnValue(
-      mockedUser as unknown as Promise<UsersModel>
-    );
+    mockedCreateUserDataAccess.mockResolvedValue(mockedUser);
 
-    const mockedJson = jest.fn();
     const mockedStatus = jest
       .fn()
       .mockImplementation(() => ({ json: mockedJson }));
@@ -181,7 +175,7 @@ describe(createUser, () => {
         status: mockedStatus,
         json: mockedJson
       } as unknown as Parameters<RequestHandler>[1],
-      jest.fn()
+      mockedNext
     );
 
     expect(mockedStatus).toBeCalledWith(201);
@@ -198,10 +192,10 @@ describe(createUser, () => {
         query: { body }
       } as unknown as Parameters<RequestHandler>[0],
       {} as unknown as Parameters<RequestHandler>[1],
-      mockedCallback
+      mockedNext
     );
 
-    expect(mockedCallback).toBeCalled();
+    expect(mockedNext).toBeCalled();
   });
 });
 
@@ -209,7 +203,9 @@ describe('with find user by id', () => {
   const mockedFindUserById = mocked(findUserById);
   const mockedUuid = mocked(uuid);
   const mockedValidate = mocked(validate);
-  const mockedCallback = jest.fn();
+
+  const mockedNext = jest.fn();
+  const mockedJson = jest.fn();
 
   beforeEach(() => {
     mockedUuid.mockReturnValue('id');
@@ -231,10 +227,10 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(error);
+      expect(mockedNext).toBeCalledWith(error);
     });
 
     it('calls "findUserById" with id from params when controller is triggered', async () => {
@@ -244,7 +240,7 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        jest.fn()
+        mockedNext
       );
 
       expect(mockedFindUserById).toBeCalledWith('params-id');
@@ -252,9 +248,7 @@ describe('with find user by id', () => {
 
     it('calls next middleware with error when user not found', async () => {
       const error = new ApiError(UsersMessages.NotFound);
-      mockedFindUserById.mockReturnValue(
-        null as unknown as Promise<UsersModel>
-      );
+      mockedFindUserById.mockResolvedValue(null);
       mockedValidate.mockReturnValue(true);
 
       await updateUser(
@@ -263,18 +257,18 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(error);
+      expect(mockedNext).toBeCalledWith(error);
     });
 
     it('calls next middleware with error when user is deleted', async () => {
       const error = new ApiError(UsersMessages.NotFound);
-      mockedFindUserById.mockReturnValue({
+      mockedFindUserById.mockResolvedValue({
         ...mockedUser,
         isDeleted: true
-      } as unknown as Promise<UsersModel>);
+      } as unknown as UsersModel);
 
       mockedValidate.mockReturnValue(true);
 
@@ -284,17 +278,15 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(error);
+      expect(mockedNext).toBeCalledWith(error);
     });
 
     it('triggers "UpdateUserDataAccess" when user exist and it called', async () => {
       mockedValidate.mockReturnValue(true);
-      mockedFindUserById.mockReturnValue(
-        mockedUser as unknown as Promise<UsersModel>
-      );
+      mockedFindUserById.mockResolvedValue(mockedUser);
 
       await updateUser(
         {
@@ -302,7 +294,7 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        jest.fn()
+        mockedNext
       );
 
       expect(mockedUpdateUserDataAccess).toBeCalledWith({
@@ -313,38 +305,26 @@ describe('with find user by id', () => {
 
     it('returns id of updated user when user successfully updated', async () => {
       mockedValidate.mockReturnValue(true);
-      mockedFindUserById.mockReturnValue(
-        mockedUser as unknown as Promise<UsersModel>
-      );
+      mockedFindUserById.mockResolvedValue(mockedUser);
 
-      mockedUpdateUserDataAccess.mockReturnValue(
-        1 as unknown as Promise<number>
-      );
+      mockedUpdateUserDataAccess.mockResolvedValue(1);
 
       await updateUser(
         {
           body,
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
-        { json: mockedCallback } as unknown as Parameters<RequestHandler>[1],
-        jest.fn()
+        { json: mockedJson } as unknown as Parameters<RequestHandler>[1],
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith({ id: 'params-id' });
+      expect(mockedJson).toBeCalledWith({ id: 'params-id' });
     });
 
     it('calls next middleware with error when updated failed', async () => {
-      mockedFindUserById.mockReturnValue({
-        ...mockedUser,
-        isDeleted: true
-      } as unknown as Promise<UsersModel>);
-      mockedFindUserById.mockReturnValue(
-        mockedUser as unknown as Promise<UsersModel>
-      );
+      mockedFindUserById.mockResolvedValue(mockedUser);
       mockedValidate.mockReturnValue(true);
-      mockedUpdateUserDataAccess.mockReturnValue(
-        0 as unknown as Promise<number>
-      );
+      mockedUpdateUserDataAccess.mockResolvedValue(0);
 
       await updateUser(
         {
@@ -352,10 +332,10 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith({
+      expect(mockedNext).toBeCalledWith({
         message: CommonMessages.Unexpected
       });
     });
@@ -370,10 +350,10 @@ describe('with find user by id', () => {
           query: { body }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalled();
+      expect(mockedNext).toBeCalled();
     });
   });
 
@@ -388,10 +368,10 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(error);
+      expect(mockedNext).toBeCalledWith(error);
     });
 
     it('calls "findUserById" with id from params when controller is triggered', async () => {
@@ -400,7 +380,7 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        jest.fn()
+        mockedNext
       );
 
       expect(mockedFindUserById).toBeCalledWith('params-id');
@@ -408,9 +388,7 @@ describe('with find user by id', () => {
 
     it('calls next middleware with error when user not found', async () => {
       const error = new ApiError(UsersMessages.NotFound);
-      mockedFindUserById.mockReturnValue(
-        null as unknown as Promise<UsersModel>
-      );
+      mockedFindUserById.mockResolvedValue(null);
       mockedValidate.mockReturnValue(true);
 
       await getUserById(
@@ -418,18 +396,18 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(error);
+      expect(mockedNext).toBeCalledWith(error);
     });
 
     it('calls next middleware with error when user is deleted', async () => {
       const error = new ApiError(UsersMessages.NotFound);
-      mockedFindUserById.mockReturnValue({
+      mockedFindUserById.mockResolvedValue({
         ...mockedUser,
         isDeleted: true
-      } as unknown as Promise<UsersModel>);
+      } as unknown as UsersModel);
 
       mockedValidate.mockReturnValue(true);
 
@@ -438,27 +416,25 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(error);
+      expect(mockedNext).toBeCalledWith(error);
     });
 
     it('returns user', async () => {
       mockedValidate.mockReturnValue(true);
-      mockedFindUserById.mockReturnValue(
-        mockedUser as unknown as Promise<UsersModel>
-      );
+      mockedFindUserById.mockResolvedValue(mockedUser);
 
       await getUserById(
         {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
-        { json: mockedCallback } as unknown as Parameters<RequestHandler>[1],
-        jest.fn()
+        { json: mockedJson } as unknown as Parameters<RequestHandler>[1],
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(mockedUser);
+      expect(mockedJson).toBeCalledWith(mockedUser);
     });
 
     it('calls next middleware with error when method gets some error', async () => {
@@ -471,10 +447,10 @@ describe('with find user by id', () => {
           query: {}
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalled();
+      expect(mockedNext).toBeCalled();
     });
   });
 
@@ -491,10 +467,10 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(error);
+      expect(mockedNext).toBeCalledWith(error);
     });
 
     it('calls "findUserById" with id from params when controller is triggered', async () => {
@@ -503,7 +479,7 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        jest.fn()
+        mockedNext
       );
 
       expect(mockedFindUserById).toBeCalledWith('params-id');
@@ -511,9 +487,7 @@ describe('with find user by id', () => {
 
     it('calls next middleware with error when user not found', async () => {
       const error = new ApiError(UsersMessages.NotFound);
-      mockedFindUserById.mockReturnValue(
-        null as unknown as Promise<UsersModel>
-      );
+      mockedFindUserById.mockResolvedValue(null);
       mockedValidate.mockReturnValue(true);
 
       await deleteUser(
@@ -521,18 +495,18 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(error);
+      expect(mockedNext).toBeCalledWith(error);
     });
 
     it('calls next middleware with error when user is deleted', async () => {
       const error = new ApiError(UsersMessages.NotFound);
-      mockedFindUserById.mockReturnValue({
+      mockedFindUserById.mockResolvedValue({
         ...mockedUser,
         isDeleted: true
-      } as unknown as Promise<UsersModel>);
+      } as unknown as UsersModel);
 
       mockedValidate.mockReturnValue(true);
 
@@ -541,10 +515,10 @@ describe('with find user by id', () => {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith(error);
+      expect(mockedNext).toBeCalledWith(error);
     });
 
     it('calls "findUserById" with id from params when it triggered', async () => {
@@ -554,8 +528,8 @@ describe('with find user by id', () => {
         {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
-        { json: mockedCallback } as unknown as Parameters<RequestHandler>[1],
-        jest.fn()
+        {} as unknown as Parameters<RequestHandler>[1],
+        mockedNext
       );
 
       expect(mockedFindUserById).toBeCalledWith('params-id');
@@ -563,16 +537,14 @@ describe('with find user by id', () => {
 
     it('triggers "deleteUserDataAccess" when user exist and it called', async () => {
       mockedValidate.mockReturnValue(true);
-      mockedFindUserById.mockReturnValue(
-        mockedUser as unknown as Promise<UsersModel>
-      );
+      mockedFindUserById.mockResolvedValue(mockedUser);
 
       await deleteUser(
         {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        jest.fn()
+        mockedNext
       );
 
       expect(mockedDeleteUserDataAccess).toBeCalledWith('params-id');
@@ -580,9 +552,7 @@ describe('with find user by id', () => {
 
     it('returns id of updated user when user successfully updated', async () => {
       mockedValidate.mockReturnValue(true);
-      mockedFindUserById.mockReturnValue(
-        mockedUser as unknown as Promise<UsersModel>
-      );
+      mockedFindUserById.mockResolvedValue(mockedUser);
 
       mockedDeleteUserDataAccess.mockReturnValue(
         1 as unknown as Promise<number>
@@ -592,11 +562,11 @@ describe('with find user by id', () => {
         {
           params: { id: 'params-id' }
         } as unknown as Parameters<RequestHandler>[0],
-        { json: mockedCallback } as unknown as Parameters<RequestHandler>[1],
-        jest.fn()
+        { json: mockedJson } as unknown as Parameters<RequestHandler>[1],
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalledWith({ message: 'User was deleted.' });
+      expect(mockedJson).toBeCalledWith({ message: 'User was deleted.' });
     });
 
     it('calls next middleware with error when method gets some error', async () => {
@@ -609,10 +579,10 @@ describe('with find user by id', () => {
           query: {}
         } as unknown as Parameters<RequestHandler>[0],
         {} as unknown as Parameters<RequestHandler>[1],
-        mockedCallback
+        mockedNext
       );
 
-      expect(mockedCallback).toBeCalled();
+      expect(mockedNext).toBeCalled();
     });
   });
 });

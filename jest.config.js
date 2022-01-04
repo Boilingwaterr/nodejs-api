@@ -15,9 +15,10 @@ module.exports = {
 
   collectCoverage: true,
 
-  verbose: true,
-
-  collectCoverageFrom: ['src/controllers/user.controller.ts'],
+  collectCoverageFrom: [
+    'src/controllers/user.controller.ts',
+    'src/controllers/groups.controller.ts'
+  ],
 
   moduleNameMapper: {
     '^@src/(.*)$': '<rootDir>/src/$1',
