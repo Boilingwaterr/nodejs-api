@@ -3,6 +3,7 @@ import { v4 as uuid, validate } from 'uuid';
 import { IUser } from '@src/models/user.model';
 import * as UsersDataAccess from '@src/data-access/users.data-access';
 import { CommonMessages } from '@controllers/common-messages';
+import { ApiError } from '@src/utils/error.utils';
 
 export enum UsersMessages {
   NotFound = 'User not found.',
@@ -31,11 +32,13 @@ export const getAllUsers: RequestHandler = async (
     );
 
     if (suggestedUser) {
-      return res.json(suggestedUser);
+      res.json(suggestedUser);
+      return;
     }
 
     const users = await UsersDataAccess.getAllUsers(limit);
     res.json(users);
+    return next();
   } catch (error) {
     next(error);
   }
@@ -55,6 +58,7 @@ export const createUser: RequestHandler = async (req, res, next) => {
     });
 
     res.status(201).json(user);
+    return next();
   } catch (error) {
     next(error);
   }
@@ -66,13 +70,15 @@ export const updateUser: RequestHandler = async (req, res, next) => {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: CommonMessages.IncorrectId });
+      next(new ApiError(CommonMessages.IncorrectId));
+      return;
     }
 
     const currentUser = await UsersDataAccess.findUserById(id);
 
     if (!currentUser || currentUser.isDeleted) {
-      return res.status(404).json({ message: UsersMessages.NotFound });
+      next(new ApiError(UsersMessages.NotFound));
+      return;
     } else {
       const resultOfOperation = await UsersDataAccess.updateUser({
         login,
@@ -82,10 +88,11 @@ export const updateUser: RequestHandler = async (req, res, next) => {
       });
 
       if (resultOfOperation) {
-        return res.json({ id });
+        res.json({ id });
+        return next();
       }
 
-      next(CommonMessages.Unexpected);
+      next({ message: CommonMessages.Unexpected });
     }
   } catch (error) {
     next(error);
@@ -97,15 +104,18 @@ export const getUserById: RequestHandler = async (req, res, next) => {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: CommonMessages.IncorrectId });
+      next(new ApiError(CommonMessages.IncorrectId));
+      return;
     }
 
     const currentUser = await UsersDataAccess.findUserById(id);
 
     if (!currentUser || currentUser.isDeleted) {
-      res.status(404).json({ message: UsersMessages.NotFound });
+      next(new ApiError(UsersMessages.NotFound));
+      return;
     } else {
-      return res.json(currentUser);
+      res.json(currentUser);
+      return next();
     }
   } catch (error) {
     next(error);
@@ -117,20 +127,23 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: CommonMessages.IncorrectId });
+      next(new ApiError(CommonMessages.IncorrectId));
+      return;
     }
 
     const currentUser = await UsersDataAccess.findUserById(id);
 
     if (!currentUser || currentUser.isDeleted) {
-      return res.status(404).json({ message: UsersMessages.NotFound });
+      next(new ApiError(UsersMessages.NotFound));
+      return;
     } else {
       const resultOfOperation = await UsersDataAccess.deleteUser(id);
       if (resultOfOperation) {
-        return res.json({ message: UsersMessages.Deleted });
+        res.json({ message: UsersMessages.Deleted });
+        return next();
       }
 
-      next(CommonMessages.Unexpected);
+      next({ message: CommonMessages.Unexpected });
     }
   } catch (error) {
     next(error);
