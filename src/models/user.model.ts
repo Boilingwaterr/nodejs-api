@@ -11,8 +11,8 @@ export interface IUser {
 }
 
 export interface UsersModel extends Model<IUser>, IUser {}
-export const Users = sequelize.define<UsersModel>(
-  'Users',
+export const User = sequelize.define<UsersModel>(
+  'User',
   {
     id: { type: DataTypes.UUID, primaryKey: true, allowNull: false },
     login: { type: DataTypes.STRING, allowNull: false },
@@ -21,6 +21,7 @@ export const Users = sequelize.define<UsersModel>(
     isDeleted: { type: DataTypes.BOOLEAN, allowNull: false }
   },
   {
-    timestamps: false
+    timestamps: false,
+    tableName: 'User'
   }
 );

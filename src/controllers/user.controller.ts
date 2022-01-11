@@ -1,18 +1,18 @@
 import { RequestHandler } from 'express';
 import { v4 as uuid, validate } from 'uuid';
-import { IUser } from '@models/users.model';
+import { IUser } from '@src/models/user.model';
 import * as UsersDataAccess from '@src/data-access/users.data-access';
+import { CommonMessages } from '@controllers/common-messages';
 
-export enum Messages {
+export enum UsersMessages {
   NotFound = 'User not found.',
-  Deleted = 'User was deleted.',
-  IncorrectId = 'Incorrect type of id.',
-  Unexpected = 'Something went wrong.'
+  Deleted = 'User was deleted.'
 }
 
 export const getAllUsers: RequestHandler = async (
   { query: { loginSubstring, limit: clientLimit } },
-  res
+  res,
+  next
 ) => {
   try {
     let limit = 500;
@@ -37,11 +37,11 @@ export const getAllUsers: RequestHandler = async (
     const users = await UsersDataAccess.getAllUsers(limit);
     res.json(users);
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };
 
-export const createUser: RequestHandler = async (req, res) => {
+export const createUser: RequestHandler = async (req, res, next) => {
   try {
     const { login, password, age }: Omit<IUser, 'id'> = req.body;
     const id = uuid();
@@ -56,7 +56,7 @@ export const createUser: RequestHandler = async (req, res) => {
 
     res.status(201).json(user);
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };
 
@@ -66,13 +66,13 @@ export const updateUser: RequestHandler = async (req, res, next) => {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: Messages.IncorrectId });
+      return res.status(400).json({ message: CommonMessages.IncorrectId });
     }
 
     const currentUser = await UsersDataAccess.findUserById(id);
 
     if (!currentUser || currentUser.isDeleted) {
-      return res.status(404).json({ message: Messages.NotFound });
+      return res.status(404).json({ message: UsersMessages.NotFound });
     } else {
       const resultOfOperation = await UsersDataAccess.updateUser({
         login,
@@ -85,30 +85,30 @@ export const updateUser: RequestHandler = async (req, res, next) => {
         return res.json({ id });
       }
 
-      next(Messages.Unexpected);
+      next(CommonMessages.Unexpected);
     }
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };
 
-export const getUserById: RequestHandler = async (req, res) => {
+export const getUserById: RequestHandler = async (req, res, next) => {
   try {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: Messages.IncorrectId });
+      return res.status(400).json({ message: CommonMessages.IncorrectId });
     }
 
     const currentUser = await UsersDataAccess.findUserById(id);
 
     if (!currentUser || currentUser.isDeleted) {
-      res.status(404).json({ message: Messages.NotFound });
+      res.status(404).json({ message: UsersMessages.NotFound });
     } else {
       return res.json(currentUser);
     }
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };
 
@@ -117,22 +117,22 @@ export const deleteUser: RequestHandler = async (req, res, next) => {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: Messages.IncorrectId });
+      return res.status(400).json({ message: CommonMessages.IncorrectId });
     }
 
     const currentUser = await UsersDataAccess.findUserById(id);
 
     if (!currentUser || currentUser.isDeleted) {
-      return res.status(404).json({ message: Messages.NotFound });
+      return res.status(404).json({ message: UsersMessages.NotFound });
     } else {
       const resultOfOperation = await UsersDataAccess.deleteUser(id);
       if (resultOfOperation) {
-        return res.json({ message: Messages.Deleted });
+        return res.json({ message: UsersMessages.Deleted });
       }
 
-      next(Messages.Unexpected);
+      next(CommonMessages.Unexpected);
     }
   } catch (error) {
-    res.status(500);
+    next(error);
   }
 };
