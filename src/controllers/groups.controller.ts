@@ -6,6 +6,7 @@ import { IGroup } from '@src/models/group.model';
 import { CommonMessages } from '@controllers/common-messages';
 import { IUser } from '@src/models/user.model';
 import sequelize from '@src/db';
+import { ApiError } from '@src/utils/error.utils';
 
 export enum GroupMessages {
   NotFound = 'Group not found.',
@@ -16,6 +17,7 @@ export const getAllGroups: RequestHandler = async (_req, res, next) => {
   try {
     const groups = await GroupsDataAccess.getAllGroups();
     res.json(groups);
+    return next();
   } catch (error) {
     next(error);
   }
@@ -51,7 +53,8 @@ export const createGroup: RequestHandler = async (req, res, next) => {
       if (group && code) {
         await transaction.commit();
 
-        return res.json({ id });
+        res.json({ id });
+        return next();
       }
     }
 
@@ -76,13 +79,15 @@ export const updateGroup: RequestHandler = async (req, res, next) => {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: CommonMessages.IncorrectId });
+      next(new ApiError(CommonMessages.IncorrectId));
+      return;
     }
 
     const currentGroup = await GroupsDataAccess.findGroupById(id);
 
     if (!currentGroup) {
-      return res.status(404).json({ message: GroupMessages.NotFound });
+      next(new ApiError(GroupMessages.NotFound));
+      return;
     } else {
       const resultOfOperation = await GroupsDataAccess.updateGroup(
         {
@@ -102,17 +107,19 @@ export const updateGroup: RequestHandler = async (req, res, next) => {
         if (resultOfOperation && code) {
           await transaction.commit();
 
-          return res.json({ id });
+          res.json({ id });
+          return next();
         }
       }
 
       if (resultOfOperation) {
         await transaction.commit();
 
-        return res.json({ id });
+        res.json({ id });
+        return next();
       }
 
-      next(CommonMessages.Unexpected);
+      next({ message: CommonMessages.Unexpected });
     }
   } catch (error) {
     await transaction.rollback();
@@ -126,15 +133,18 @@ export const getGroupById: RequestHandler = async (req, res, next) => {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: CommonMessages.IncorrectId });
+      next(new ApiError(CommonMessages.IncorrectId));
+      return;
     }
 
     const currentGroup = await GroupsDataAccess.findGroupById(id);
 
     if (!currentGroup) {
-      res.status(404).json({ message: GroupMessages.NotFound });
+      next(new ApiError(GroupMessages.NotFound));
+      return;
     } else {
-      return res.json(currentGroup);
+      res.json(currentGroup);
+      return next();
     }
   } catch (error) {
     next(error);
@@ -146,20 +156,23 @@ export const deleteGroup: RequestHandler = async (req, res, next) => {
     const id = req.params.id;
 
     if (!validate(id)) {
-      return res.status(400).json({ message: CommonMessages.IncorrectId });
+      next(new ApiError(CommonMessages.IncorrectId));
+      return;
     }
 
     const currentGroup = await GroupsDataAccess.findGroupById(id);
 
     if (!currentGroup) {
-      return res.status(404).json({ message: GroupMessages.NotFound });
+      next(new ApiError(GroupMessages.NotFound));
+      return;
     } else {
       const resultOfOperation = await GroupsDataAccess.deleteGroup(id);
       if (resultOfOperation) {
-        return res.json({ message: GroupMessages.Deleted });
+        res.json({ message: GroupMessages.Deleted });
+        return next();
       }
 
-      next(CommonMessages.Unexpected);
+      next({ message: CommonMessages.Unexpected });
     }
   } catch (error) {
     next(error);
