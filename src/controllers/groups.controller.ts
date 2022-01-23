@@ -69,6 +69,7 @@ export const createGroup: RequestHandler = async (req, res, next) => {
 
 export const updateGroup: RequestHandler = async (req, res, next) => {
   const transaction = await sequelize.transaction();
+
   try {
     const {
       name,

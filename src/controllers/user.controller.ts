@@ -26,14 +26,16 @@ export const getAllUsers: RequestHandler = async (
       limit = Number(clientLimit);
     }
 
-    const suggestedUser = await UsersDataAccess.getSuggestUsers(
-      loginSubstring as string | string[],
-      limit
-    );
+    if (loginSubstring) {
+      const suggestedUser = await UsersDataAccess.getSuggestUsers(
+        loginSubstring as string | string[],
+        limit
+      );
 
-    if (suggestedUser) {
-      res.json(suggestedUser);
-      return;
+      if (suggestedUser) {
+        res.json(suggestedUser);
+        return;
+      }
     }
 
     const users = await UsersDataAccess.getAllUsers(limit);
