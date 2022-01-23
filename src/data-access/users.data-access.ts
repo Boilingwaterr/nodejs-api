@@ -4,6 +4,9 @@ import { Op } from 'sequelize';
 
 export const findUserById = async (id: IUser['id']) => await User.findByPk(id);
 
+export const findUserByLogin = async (login: IUser['login']) =>
+  await User.findOne({ where: { login } });
+
 export const createUser = async (user: IUser) => await User.create(user);
 
 export const updateUser = async ({
